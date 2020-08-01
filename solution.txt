@@ -1,0 +1,104 @@
+#NOTE:-THE FOLLOWING SPARK ASSIGNMENT WAS DONE ON SPARK REPL
+
+import org.apache.spark.sql.SparkSession
+val spark=SparkSession
+
+#converting the diffrent datsets to DatatFrame
+
+val spark=SparkSession.builder().appName("DataEaze").config("spark.some.config.option","some-value").getOrCreate()
+
+val conf_par_df=spark.read.parquet("file:///C://Users/Hp/Desktop/Dataeaze/confidential.snappy.parquet")
+val nonconf_csv_df=spark.read.csv("file:///C://Users/Hp/Desktop/Dataeaze/nonConfidential.csv")
+
+#combine both the dataframes
+val combine_df=conf_par_df.union(nonconf_csv_df)
+
+import spark.implicits._
+#combine_df.show(1)
+
+#ID|Isconfidential| ProjectName|Street|City|State|Zipcode|Country|LEEDSystemVersionDisplayName|PointsAchieved|CertLevel|CertDate|IsCertified|
+#OwnerTypes|GrossSqFoot|TotalPropArea|ProjectTypes|OwnerOrganization|RegistrationDate|
+
+#creating temporary view to perform sql operations
+combine_df.createOrReplaceTempView("table0")
+
+
+#q1)How many LEED projects are there in Virginia (including all types of project types and versions of LEED)?
+
+ val q1=spark.sql("SELECT State,COUNT(*) AS NO_OF_LEED FROM table0 WHERE State='VA' GROUP BY State")
+q1.show()
+
+#o/p:-
+#+-----+----------+
+#|State|NO_OF_LEED|
+#+-----+----------+
+#|   VA|      2746|
+#+-----+----------+
+
+
+#q2)What is the number of LEED projects in Virginia by owner type?
+
+val q2=spark.sql("SELECT OwnerTypes,COUNT(*) AS NO_OF_LEED FROM table0 WHERE State='VA' GROUP BY OwnerTypes")
+
+q2.show()
+
+#o/p:-
+
+#+--------------------+----------+
+#|          OwnerTypes|NO_OF_LEED|
+#+--------------------+----------+
+#|Government Use: F...|        79|
+#|Non-Profit Org., ...|         1|
+#|Educational: K-12...|         3|
+#|Local Government,...|         1|
+#|  Federal Government|       137|
+#|        Confidential|       519|
+#|Educational: Univ...|        48|
+#|         Profit Org.|       347|
+#|Investor: REIT,No...|         8|
+#|Investor: Pension...|         6|
+#|Investor: Insuran...|         4|
+#|Educational: K-12...|        23|
+#|                null|       547|
+#|          Individual|        82|
+#|Corporate: Privat...|       197|
+#|Local Government,...|         2|
+#|Investor: Investm...|        16|
+#|Government Use: L...|        48|
+#|Community Develop...|         3|
+#|    State Government|        91|
+#+--------------------+----------+
+#only showing top 20 rows
+
+#q3)What is the total Gross Square Feet of building space that is LEED-certified in Virginia?
+
+val q3=spark.sql("SELECT State,SUM(GrossSqFoot) AS total_gross_sqft  FROM table0 WHERE State='VA' AND IsCertified = 'Yes' GROUP BY State")
+q3.show()
+
+#o/p:-
+
+#+-----+----------------+
+#|State|total_gross_sqft|
+#+-----+----------------+
+#|   VA|  1.4914438291E8|
+#+-----+----------------+
+
+
+#q4)What Zip Code in Virginia has the highest number of projects?
+
+val q4=spark.sql("SELECT Zipcode,COUNT(*) AS NO_OF_PROJECTS from table0 WHERE State='VA' GROUP BY Zipcode ORDER BY 2 DESC")
+q4.show(2)
+
+#o/p:-
+
+#+------------+--------------+
+#|     Zipcode|NO_OF_PROJECTS|
+#+------------+--------------+
+#|Confidential|           519|
+#|       22314|           175|
+#+------------+--------------+
+
+
+
+
+
